@@ -1,24 +1,32 @@
 {
   "name": "event-booking-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Production-ready event booking API with JWT auth and PostgreSQL",
+  "type": "module",
+  "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "db:init": "node scripts/initDb.js",
+    "db:seed": "node scripts/seedDb.js",
+    "db:reset": "node scripts/initDb.js && node scripts/seedDb.js",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit --detectOpenHandles",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ndang11/event-booking-api.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/ndang11/event-booking-api/issues"
-  },
-  "homepage": "https://github.com/ndang11/event-booking-api#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
+  "jest": {
+    "transform": {},
+    "extensionsToTreatAsEsm": [".js"],
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.js"]
   }
 }
