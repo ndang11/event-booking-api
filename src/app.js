@@ -11,6 +11,14 @@ app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
+app.get('/', (_req, res) => {
+  res.json({
+    status: "success",
+    message: "Welcome to the Event Booking API!",
+    timestamp: new Date()
+  });
+});
+
 app.use('/auth', authRoutes);
 app.use('/events', eventRoutes);
 app.use('/', bookingRoutes);
