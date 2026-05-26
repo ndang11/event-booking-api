@@ -1,8 +1,9 @@
 import 'dotenv/config';
-import pool from '../src/config/db.js';
-import { hashPassword } from '../src/utils/password.js';
+import { getPool } from '../src/config/db.js';
+import { hashPasswordSync } from '../src/utils/password.js';
 
 async function seedDb() {
+  const pool = await getPool();
   const client = await pool.connect();
   try {
     console.log('🌱 Seeding database...');
@@ -15,7 +16,7 @@ async function seedDb() {
     await client.query('ALTER SEQUENCE events_id_seq RESTART WITH 1');
     await client.query('ALTER SEQUENCE bookings_id_seq RESTART WITH 1');
 
-    const pw = hashPassword('Password1');
+    const pw = hashPasswordSync('Password1');
     const usersResult = await client.query(
       `INSERT INTO users (username, email, password_hash) VALUES
         ('alice',   'alice@example.com',   $1),
@@ -52,7 +53,7 @@ async function seedDb() {
     console.log('   Email: charlie@example.com Password: Password1');
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('❌ Seed failed:', err.message);
+    console.error(' Seed failed:', err.message);
     process.exit(1);
   } finally {
     client.release();

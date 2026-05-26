@@ -1,7 +1,7 @@
 import pool from '../config/db.js';
 import { isPositiveInteger, parsePagination } from '../utils/validation.js';
 
-export async function createBooking(eventId, userId, seats) {
+export async function createBooking({ eventId, userId, seats }) {
   if (!isPositiveInteger(seats)) {
     const err = new Error('seats must be a positive integer'); err.status = 400; throw err;
   }
@@ -36,8 +36,8 @@ export async function createBooking(eventId, userId, seats) {
 
     const bookingResult = await client.query(
       `INSERT INTO bookings (event_id, user_id, seats_booked)
-       VALUES ($1, $2, $3)
-       RETURNING *`,
+        VALUES ($1, $2, $3)
+        RETURNING *`,
       [eventId, userId, seats]
     );
 
@@ -51,7 +51,7 @@ export async function createBooking(eventId, userId, seats) {
   }
 }
 
-export async function getUserBookings(userId, { limit, offset }) {
+export async function getUserBookings({ userId, limit, offset }) {
   const countResult = await pool.query(
     'SELECT COUNT(*) FROM bookings WHERE user_id = $1',
     [userId]
@@ -72,7 +72,7 @@ export async function getUserBookings(userId, { limit, offset }) {
   return { bookings: result.rows, total, limit, offset };
 }
 
-export async function cancelBooking(bookingId, userId) {
+export async function cancelBooking({ bookingId, userId }) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -111,3 +111,6 @@ export async function cancelBooking(bookingId, userId) {
     client.release();
   }
 }
+
+export const bookSeats = createBooking;
+export const listUserBookings = getUserBookings;

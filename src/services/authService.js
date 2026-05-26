@@ -3,6 +3,25 @@ import { hashPassword, verifyPassword } from '../utils/password.js';
 import { signToken } from '../utils/jwt.js';
 import { isValidEmail, isStrongPassword } from '../utils/validation.js';
 
+export async function findUserByEmail(email) {
+  const result = await pool.query(
+    'SELECT * FROM users WHERE email = $1',
+    [email.toLowerCase()]
+  );
+  return result.rows[0];
+}
+
+export async function createUser({ username, email, password_hash }) {
+  const result = await pool.query(
+    `INSERT INTO users (username, email, password_hash)
+      VALUES ($1, $2, $3)
+      RETURNING id, username, email, created_at`,
+    [username.trim(), email.toLowerCase(), password_hash]
+  );
+
+  return result.rows[0];
+}
+
 export async function registerUser({ username, email, password }) {
   if (!username || typeof username !== 'string' || username.trim().length < 2) {
     const err = new Error('Username must be at least 2 characters'); err.status = 400; throw err;
@@ -14,12 +33,12 @@ export async function registerUser({ username, email, password }) {
     const err = new Error('Password must be at least 8 characters and contain a letter and a number'); err.status = 400; throw err;
   }
 
-  const passwordHash = hashPassword(password);
+  const passwordHash = await hashPassword(password);
 
   const result = await pool.query(
     `INSERT INTO users (username, email, password_hash)
-     VALUES ($1, $2, $3)
-     RETURNING id, username, email, created_at`,
+      VALUES ($1, $2, $3)
+      RETURNING id, username, email, created_at`,
     [username.trim(), email.toLowerCase(), passwordHash]
   );
 
@@ -43,7 +62,7 @@ export async function loginUser({ email, password }) {
     const err = new Error('Invalid credentials'); err.status = 401; throw err;
   }
 
-  const valid = verifyPassword(password, user.password_hash);
+  const valid = await verifyPassword(password, user.password_hash);
   if (!valid) {
     const err = new Error('Invalid credentials'); err.status = 401; throw err;
   }

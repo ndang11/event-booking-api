@@ -8,8 +8,8 @@
     "start": "node src/app.js",
     "dev": "node --watch src/app.js",
     "db:init": "node scripts/initDb.js",
-    "db:seed": "node scripts/seedDb.js",
-    "db:reset": "node scripts/initDb.js && node scripts/seedDb.js",
+    "db:seed": "node scripts/seed.js",
+    "db:reset": "node scripts/initDb.js && node scripts/seed.js",
     "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit --detectOpenHandles",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch"
   },
@@ -25,8 +25,8 @@
   },
   "jest": {
     "transform": {},
-    "extensionsToTreatAsEsm": [".js"],
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.js"]
+    "testMatch": ["**/tests/**/*.test.js"],
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"]
   }
 }

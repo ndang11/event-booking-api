@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import pool from '../src/config/db.js';
+import { getPool } from '../src/config/db.js';
 
 const schema = `
   CREATE TABLE IF NOT EXISTS users (
@@ -36,13 +36,14 @@ const schema = `
 `;
 
 async function initDb() {
+  const pool = await getPool();
   const client = await pool.connect();
   try {
     console.log('🔧 Initializing database schema...');
     await client.query(schema);
-    console.log('✅ Schema created successfully');
+    console.log(' Schema created successfully');
   } catch (err) {
-    console.error('❌ Failed to initialize schema:', err.message);
+    console.error(' Failed to initialize schema:', err.message);
     process.exit(1);
   } finally {
     client.release();

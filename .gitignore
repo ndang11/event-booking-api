@@ -1,1 +1,9 @@
 .env
+.env.test
+.env.example
+node_modules/
+*.log
+.DS_Store
+coverage/
+*.test.js
+*.spec.js
