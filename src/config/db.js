@@ -6,30 +6,39 @@ dotenv.config();
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-const dbConfig = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: isProduction ? process.env.DB_NAME : (process.env.TEST_DB_NAME || 'test_db'),
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-};
-
 console.log('--- DB Connection Debugging ---');
 console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Target Host:', dbConfig.host);
-console.log('Target Database:', dbConfig.database);
 
 let pool = null;
 
 export async function getPool() {
   if (!pool) {
-    const poolConfig = dbConfig.host ? dbConfig : {
-      ...dbConfig,
-      host: '/var/run/postgresql',
-      user: process.env.DB_USER || 'postgres',
-      password: undefined,
-    };
-    pool = new Pool(poolConfig);
+    if (process.env.DATABASE_URL) {
+      console.log('Using DATABASE_URL for connection');
+      pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+      });
+    } else if (process.env.DB_HOST) {
+      console.log('Using individual DB_* env vars for connection');
+      console.log('Target Host:', process.env.DB_HOST);
+      console.log('Target Database:', isProduction ? process.env.DB_NAME : (process.env.TEST_DB_NAME || 'test_db'));
+      pool = new Pool({
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: isProduction ? process.env.DB_NAME : (process.env.TEST_DB_NAME || 'test_db'),
+        port: parseInt(process.env.DB_PORT || '5432', 10),
+        ssl: { rejectUnauthorized: false },
+      });
+    } else {
+      console.log('Using local Unix socket at /var/run/postgresql');
+      pool = new Pool({
+        host: '/var/run/postgresql',
+        database: isProduction ? process.env.DB_NAME : (process.env.TEST_DB_NAME || 'test_db'),
+        user: process.env.DB_USER || 'postgres',
+      });
+    }
   }
   return pool;
 }
@@ -61,8 +70,9 @@ export default {
 
 let _initializedHandler = false;
 export async function ensurePoolErrorHandling() {
-  if (!_initializedHandler && pool) {
-    pool.on('error', (err) => {
+  const p = await getPool();
+  if (!_initializedHandler && p) {
+    p.on('error', (err) => {
       console.error('Unexpected error on idle PostgreSQL client', err);
       process.exit(1);
     });
