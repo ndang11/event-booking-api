@@ -1,45 +1,41 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import pg from 'pg';
-import 'dotenv/config';
+const { Pool } = pg;
+
+const isProduction = process.env.NODE_ENV === 'production';
+
+const dbConfig = {
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: isProduction ? process.env.DB_NAME : (process.env.TEST_DB_NAME || 'test_db'),
+  port: parseInt(process.env.DB_PORT || '5432', 10),
+};
+
+console.log('--- DB Connection Debugging ---');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('Target Host:', dbConfig.host);
+console.log('Target Database:', dbConfig.database);
 
 let pool = null;
 
 export async function getPool() {
   if (!pool) {
-    const { Pool } = pg;
-    
-    console.log('DB Config - NODE_ENV:', process.env.NODE_ENV);
-    console.log('DB Config - DB_HOST:', process.env.DB_HOST);
-    console.log('DB Config - DB_USER:', process.env.DB_USER);
-    console.log('DB Config - Using TEST_DB_NAME:', !!process.env.TEST_DB_NAME);
-    
-    const host = process.env.DB_HOST || 'localhost';
-    const port = Number(process.env.DB_PORT) || 5432;
-    const database = process.env.TEST_DB_NAME || process.env.DB_NAME || 'event_booking';
-    
-    if (!process.env.DB_HOST) {
-      pool = new Pool({
-        host:     '/var/run/postgresql',
-        port:     port,
-        database: database,
-        user:     process.env.DB_USER || 'postgres',
-        max:                 20,
-        idleTimeoutMillis:   30_000,
-        connectionTimeoutMillis: 2_000,
-      });
-    } else {
-      pool = new Pool({
-        host:     host,
-        port:     port,
-        database: database,
-        user:     process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD,
-        max:                 20,
-        idleTimeoutMillis:   30_000,
-        connectionTimeoutMillis: 2_000,
-      });
-    }
+    const poolConfig = dbConfig.host ? dbConfig : {
+      ...dbConfig,
+      host: '/var/run/postgresql',
+      user: process.env.DB_USER || 'postgres',
+      password: undefined,
+    };
+    pool = new Pool(poolConfig);
   }
   return pool;
+}
+
+export function createPoolClient() {
+  return pool.connect();
 }
 
 export default {
