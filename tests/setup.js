@@ -1,4 +1,6 @@
+
 import 'dotenv/config';
+
 process.env.NODE_ENV = 'test';
 process.env.DB_USER = 'ndang-royalty';
 
@@ -26,7 +28,9 @@ export async function clearTables() {
   await _pool.query('ALTER SEQUENCE users_id_seq RESTART WITH 1');
   await _pool.query('ALTER SEQUENCE events_id_seq RESTART WITH 1');
   await _pool.query('ALTER SEQUENCE bookings_id_seq RESTART WITH 1');
+  await _pool.query('TRUNCATE TABLE bookings, events, users RESTART IDENTITY CASCADE;');
 }
 
 beforeAll(setup);
 afterAll(teardown);
+beforeEach(clearTables);

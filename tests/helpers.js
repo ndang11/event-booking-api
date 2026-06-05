@@ -1,37 +1,69 @@
-import request      from 'supertest';
-import app          from '../src/app.js';
-import { signToken } from '../src/utils/jwt.js';
+import request from 'supertest';
+import app from '../src/app.js';
+import { setup, teardown, clearTables } from './setup.js';
+export { setup, teardown, clearTables };
 
-export const registerUser = (overrides = {}) =>
-  request(app).post('/auth/register').send({
-    username: 'testuser',
-    email:    'test@example.com',
-    password: 'Password1',
-    ...overrides,
-  });
+export async function registerUser(userData = {}) {
+  const uniqueId = Math.random().toString(36).substring(7);
+  return await request(app)
+    .post('/auth/register')
+    .send({
+      username: `user_${uniqueId}`,
+      email: `test_${uniqueId}@example.com`,
+      password: "Password123!",
+      ...userData
+    });
+}
 
-export const loginUser = ({ email = 'test@example.com', password = 'Password1' } = {}) =>
-  request(app).post('/auth/login').send({ email, password });
+export async function loginUser({ email, password } = {}) {
+  return await request(app)
+    .post('/auth/login')
+    .send({ email, password });
+}
 
-export const makeToken = (overrides = {}) =>
-  signToken({ id: 999, username: 'mock', email: 'mock@test.com', ...overrides });
+export async function createAndLoginUser(overrides = {}) {
+  const uniqueId = Math.random().toString(36).substring(7);
+  const userPayload = {
+    email: `test-${uniqueId}@example.com`,
+    password: "Password123!",
+    username: "Test User",
+    ...overrides
+  };
 
-export const createAndLoginUser = async (overrides = {}) => {
-  const res = await registerUser(overrides);
-  return { token: res.body.data.token, user: res.body.data.user };
-};
+  await registerUser(userPayload);
 
-export const futureDate = (days = 10) =>
-  new Date(Date.now() + days * 86_400_000).toISOString();
+  const loginRes = await request(app)
+    .post('/auth/login')
+    .send({ email: userPayload.email, password: userPayload.password });
 
-export const createEvent = (token, overrides = {}) =>
-  request(app)
+  return {
+    token: loginRes.body.data?.token,
+    user: loginRes.body.data?.user
+  };
+}
+
+export async function createEvent(token, overrides = {}) {
+  return await request(app)
     .post('/events')
     .set('Authorization', `Bearer ${token}`)
     .send({
-      title:       'Test Event',
-      description: 'A test event',
-      date:        futureDate(10),
+      title: 'Test Event',
+      description: 'An elegant event description.',
+      date: futureDate(5),
       total_seats: 20,
-      ...overrides,
+      ...overrides
     });
+}
+
+export function futureDate(daysAhead = 1) {
+  const date = new Date();
+  date.setDate(date.getDate() + daysAhead);
+  return date.toISOString();
+}
+
+export async function book(token, eventId, seats = 1) {
+  return await request(app)
+    .post(`/events/${eventId}/book`)
+    .set('Authorization', `Bearer ${token}`)
+    .send({ seats });
+}
