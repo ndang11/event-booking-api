@@ -1,67 +1,61 @@
 import request from 'supertest';
 import app from '../src/app.js';
-import { setup, teardown, clearTables } from './setup.js';
-export { setup, teardown, clearTables };
+import { getPool } from '../src/config/db.js';
+import db from '../src/config/db.js';
 
-export async function registerUser(userData = {}) {
-  const uniqueId = Math.random().toString(36).substring(7);
+export async function setup() {
+}
+
+export async function teardown() {
+  await db.end();
+}
+
+export async function clearTables() {
+  const pool = await getPool();
+  await pool.query('TRUNCATE TABLE bookings, events, users RESTART IDENTITY CASCADE;');
+}
+
+export function futureDate(daysFromNow = 1) {
+  return new Date(Date.now() + daysFromNow * 86400000).toISOString();
+}
+
+export async function registerUser(userData) {
   return await request(app)
     .post('/auth/register')
     .send({
-      username: `user_${uniqueId}`,
-      email: `test_${uniqueId}@example.com`,
-      password: "Password123!",
+      username: 'Test User',
+      password: 'Password123!',
       ...userData
     });
 }
 
-export async function loginUser({ email, password } = {}) {
+export async function loginUser(credentials) {
   return await request(app)
     .post('/auth/login')
-    .send({ email, password });
+    .send(credentials);
 }
 
-export async function createAndLoginUser(overrides = {}) {
-  const uniqueId = Math.random().toString(36).substring(7);
-  const userPayload = {
-    email: `test-${uniqueId}@example.com`,
-    password: "Password123!",
-    username: "Test User",
-    ...overrides
-  };
-
-  await registerUser(userPayload);
-
-  const loginRes = await request(app)
-    .post('/auth/login')
-    .send({ email: userPayload.email, password: userPayload.password });
-
-  return {
-    token: loginRes.body.data?.token,
-    user: loginRes.body.data?.user
-  };
+export async function createAndLoginUser(userData = {}) {
+  const email = userData.email || `user-${Date.now()}@example.com`;
+  await registerUser({ email, ...userData });
+  const loginRes = await loginUser({ email, password: 'Password123!' });
+  return { token: loginRes.body.data.token };
 }
 
-export async function createEvent(token, overrides = {}) {
+export async function createEvent(token, customData = {}) {
   return await request(app)
     .post('/events')
     .set('Authorization', `Bearer ${token}`)
     .send({
       title: 'Test Event',
-      description: 'An elegant event description.',
-      date: futureDate(5),
-      total_seats: 20,
-      ...overrides
+      description: 'Event Description',
+      date: new Date(Date.now() + 86400000).toISOString(), 
+      total_seats: 10,
+      ...customData
     });
 }
 
-export function futureDate(daysAhead = 1) {
-  const date = new Date();
-  date.setDate(date.getDate() + daysAhead);
-  return date.toISOString();
-}
-
-export async function book(token, eventId, seats = 1) {
+export async function book(token, eventId, seats) {
   return await request(app)
     .post(`/events/${eventId}/book`)
     .set('Authorization', `Bearer ${token}`)
